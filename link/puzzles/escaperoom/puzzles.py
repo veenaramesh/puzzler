@@ -1,23 +1,5 @@
 from escaperoom import GridPuzzle, Door, Button, Rock
 
-# Function to display the puzzle state
-def display_puzzle_state(puzzle):
-    grid = [['.' for _ in range(puzzle.grid_size[0])] for _ in range(puzzle.grid_size[1])]
-
-    for obj in puzzle.objects:
-        if isinstance(obj, Door):
-            grid[obj.position[1]][obj.position[0]] = 'D' if obj.open else 'd'
-        elif isinstance(obj, Button):
-            grid[obj.position[1]][obj.position[0]] = 'B' if obj.pressed else 'b'
-        elif isinstance(obj, Rock):
-            grid[obj.position[1]][obj.position[0]] = 'R'
-
-    grid[puzzle.player.position[1]][puzzle.player.position[0]] = 'P'
-
-    for row in reversed(grid):
-        print(' '.join(row))
-    print(puzzle.get_status())
-
 def level_one(): 
     # Solution:
     # print(puzzle.move_player('up'))
@@ -46,8 +28,8 @@ def level_one():
         "puzzle.move_player('down')": "Will move player one spot backward in the y axis.", 
         "puzzle.move_player('left')": "Will move player one spot forward in the x axis.", 
         "puzzle.move_player('right')": "Will move player one spot backward in the x axis.", 
-        "puzzle.equip(rock)": "Will allow player to equip rock.", 
-        "puzzle.drop(rock)": "Will allow player to unequip rock."
+        "puzzle.equip('rock')": "Will allow player to equip rock.", 
+        "puzzle.drop('rock')": "Will allow player to unequip rock."
     }
     return puzzle, available_actions
 
@@ -81,3 +63,9 @@ def level_two():
 
     return puzzle, available_actions
 
+def get_puzzle(level: int):
+    puzzles = {
+        1: level_one, 
+        2: level_two
+    }
+    return puzzles[level]()

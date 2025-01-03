@@ -15,6 +15,7 @@ class Door(GameObject):
     def __init__(self, position: Tuple[int, int]):
         super().__init__(position)
         self.open = False
+        self.description = f"There is a simple door."
 
     def activate(self):
         self.open = True
@@ -39,6 +40,7 @@ class Button(GameObject):
         self.linked_objects = linked_objects
         self.weight_threshold = weight_threshold
         self.current_weight = 0
+        self.description = "There is a button on the floor. You can press it"
 
     def add_weight(self, weight):
         self.current_weight += weight
@@ -83,12 +85,24 @@ class Rock(GameObject):
     def __init__(self, position: Tuple[int, int], weight: int = 100):
         super().__init__(position)
         self.weight = 100 # pounds
-        
+
+# Obstacle     
+# class Laser(GameObject): 
+#     def __init(self, position: Tuple[int, int], direction): 
+#         super().__init__(position)
+#         self.direction = direction 
+
+#     def define_obstacle_path(self, grid_size, objects): 
+#         for o in objects: 
+#             if self.direction == "left": 
+#                 impacted_points = [self.position.]
+
+# Player
 class Player:
     def __init__(self, position: Tuple[int, int]):
         self.position = position
         # later, we can have a maximum weight in inventory
-        self.inventory: List[GameObject] = []
+        self.inventory: GameObject = None
         self.weight = 150
 
     def move(self, direction: str, grid_size: Tuple[int, int]):
@@ -120,24 +134,44 @@ class GridPuzzle:
 
     def get_objects_at(self, position: Tuple[int, int]) -> List[GameObject]:
         return [obj for obj in self.objects if obj.position == position]
-    
-    # actions
-    def equip(self, obj: GameObject): 
-        for o in self.get_objects_at(self.player.position): 
-            if isinstance(o, Button):
-                o.remove_weight(getattr(obj, 'weight', 0))
-            
-        self.player.inventory.append(obj)
-        self.objects.remove(obj)
 
-        return f"You now have {len(self.player.inventory)} item(s) in your inventory."
+    def get_object_by_name(self, name: str): 
+        # only looking at the player position: !!!
+        return next((obj for obj in self.get_objects_at(self.player.position) 
+                    if obj.__class__.__name__.lower() == name.lower()), None)
 
-    def drop(self, obj: GameObject): 
+    # ACTIONS # 
+    def equip(self, obj_name: str): 
+        obj = self.get_object_by_name(obj_name)
+        print(obj)
+        if obj: 
+            for o in self.get_objects_at(self.player.position): 
+                if isinstance(o, Button):
+                    o.remove_weight(getattr(obj, 'weight', 0))
+
+            if self.player.inventory:
+                return "Your hands are full! Drop what you're carrying first."
+
+            self.player.inventory = obj
+            self.objects.remove(obj)
+
+            return f"You now have the item {obj} in your inventory."
+        else: 
+            return "There is no object that you can equip. "
+
+    def drop(self, obj_name: str): 
+        if not self.player.inventory: 
+            return "You are not carrying anything. "
+        
+        obj = self.get_object_by_name(obj_name)
+        if self.player.inventory.__class__.__name__.lower() != obj_name.lower():
+            return f"You aren't carrying a {obj_name}"
+        
         for o in self.get_objects_at(self.player.position): 
             if isinstance(o, Button):
                 o.add_weight(getattr(obj, 'weight', 0))
 
-        self.player.inventory.remove(obj)
+        self.player.inventory = None
         obj.set_position(self.player.position)
         self.objects.append(obj)
 
@@ -176,6 +210,5 @@ class GridPuzzle:
         return door and door.open and self.player.position == door.position
 
     def get_status(self):
-        inventory_items = ", ".join(obj.__class__.__name__ for obj in self.player.inventory)
-        return f"Player at {self.player.position}, Steps: {self.steps}, Inventory: [{inventory_items}]"
+        return f"Player at {self.player.position}, Steps: {self.steps}, Inventory: {self.player.inventory}"
     
