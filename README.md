@@ -1,5 +1,5 @@
 # THE PUZZLER LLM EVALS 
-### Objective: 
+### Objective
 A framework for evaluating how well Large Language Models can handle puzzle-solving tasks. The goal of this project is to not only understand how LLMs perform at a single level, but understand how the solution to one puzzle can influence the solution to a next puzzle. 
 
 We currently only have two puzzles. 
