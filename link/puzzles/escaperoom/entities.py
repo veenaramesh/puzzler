@@ -40,7 +40,7 @@ class Button(GameObject):
         self.linked_objects = linked_objects
         self.weight_threshold = weight_threshold
         self.current_weight = 0
-        self.description = "There is a button on the floor. You can press it"
+        self.description = "There is a button on the floor. You can press it."
 
     def add_weight(self, weight):
         self.current_weight += weight
@@ -62,6 +62,12 @@ class Button(GameObject):
         weight = getattr(obj, 'weight', 0)
         return self.remove_weight(weight)
 
+    def activate(self): 
+        return self.press()
+    
+    def deactivate(self):
+        return self.unpress()
+    
     def press(self):
         if not self.pressed:
             self.pressed = True
@@ -80,12 +86,32 @@ class Button(GameObject):
             return "The button rises as the weight is removed. You hear another click. The button is unpressed."
         return None    
 
+    def interact(self, player):
+        if player.position == self.position: 
+            return "The button is already pressed."
+        else: 
+            return "You are too far away to interact with the button."
+
 # Objects
 class Rock(GameObject):
     def __init__(self, position: Tuple[int, int], weight: int = 100):
         super().__init__(position)
         self.weight = 100 # pounds
+    
+    def interact(self, player):
+        if player.position == self.position: 
+            return "You pick up the rock."
+        else: 
+            return "You are too far away to interact with the rock."
 
+    def activate(self): 
+        # you cannot activate a rock 
+        return self.interact(self.player)
+    
+    def deactivate(self):
+        # you cannot deactivate a rock
+        return self.interact(self.player)
+    
 # Obstacle     
 # class Laser(GameObject): 
 #     def __init(self, position: Tuple[int, int], direction): 
@@ -136,6 +162,7 @@ class GridPuzzle:
         return [obj for obj in self.objects if obj.position == position]
 
     def get_object_by_name(self, name: str): 
+        # looking at the player inventory first:
         if self.player.inventory and self.player.inventory.__class__.__name__.lower() == name.lower():
             return self.player.inventory
         
@@ -167,7 +194,7 @@ class GridPuzzle:
         
         obj = self.get_object_by_name(obj_name)
         if self.player.inventory.__class__.__name__.lower() != obj_name.lower():
-            return f"You aren't carrying a {obj_name}"
+            return f"You aren't carrying a {obj_name}."
         
         for o in self.get_objects_at(self.player.position): 
             if isinstance(o, Button):
@@ -183,7 +210,7 @@ class GridPuzzle:
         if self.player.move(direction, self.grid_size):
             self.steps += 1
             return self.handle_player_movement(old_position, self.player.position)
-        return "Invalid move"
+        return "Invalid move."
         
     def handle_player_movement(self, old_position: Tuple[int, int], new_position: Tuple[int, int]):
         results = []
