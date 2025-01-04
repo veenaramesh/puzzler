@@ -1,27 +1,32 @@
-from escaperoom import GridPuzzle
-import puzzles 
+from link.puzzles.escaperoom.entities import GridPuzzle
+import link.puzzles.escaperoom.levels as levels 
 
 from typing import Dict
 import re 
 import aisuite as ai
-from utils import print_puzzle_state, print_available_actions, print_object_state, print_player_state
+from link.puzzles.escaperoom.utils import print_puzzle_state, print_available_actions, print_object_state, print_player_state
 
 SYSTEM_PROMPT = """Goal: Your goal is to reach and open the door ('D').
 
 Rules:
-    1. You can move on the grid using up/down/left/right actions
-    2. You can only pick up or drop objects when you are at their position (same x,y coordinates)
+    1. You can move on the grid using up/down/left/right actions. 
+    2. You can only pick up or drop objects when you are at their position (same x,y coordinates). 
     3. Rocks ('R') can be equipped.
-    4. A pressed button opens the door ('d' becomes 'D')
-    6. Respond with one available action at a time
-    7. Do not send any other information. Only send the available action
+    4. A pressed button opens the door ('d' becomes 'D'). 
+    5. Respond with one available action at a time. 
+    6. Do not send any other information. Only send the available action. 
+
+Hints: 
+    1. Plan moves in advance. 
+    2. Think about objects in the room. 
+    3. Think about the order of actions.
 """
 
-class PuzzleSession:
+class Runner:
     def __init__(self: str = "", model: str = "openai:gpt-4o", puzzle_level: int=1):
         self.client = ai.Client() #OpenAI(api_key=api_key)
         self.model = model
-        self.puzzle, self.available_actions = puzzles.get_puzzle(puzzle_level)
+        self.puzzle, self.available_actions = levels.get_puzzle(puzzle_level)
         self.system_prompt = self.get_prompt(self.puzzle, self.available_actions)
         self.conversation_history = [{"role": "system", "content": self.system_prompt}]
 
@@ -40,30 +45,28 @@ class PuzzleSession:
         )
         content = response.choices[0].message.content
         self.add_to_history("assistant", content)
+        print(f"LLM: {content}")
         return content
 
     def send_message(self, message: str) -> str:
+        print(f"PUZZLE: {message}")
         self.add_to_history("user", message)
         return self.get_llm_response()
-    
-    def create(self):
-        return 
-    
+        
     def interact_with_puzzle(self, response):
         matches = re.findall(r'puzzle\.[a-zA-Z_]+\([^)]*\)', response)
         for match in matches:
-            print(match)
-            response = eval('self.' + match)
-            return response
+            try: 
+                response = eval('self.' + match)
+                return response
+            except Exception as e: 
+                raise ValueError("Invalid action encountered: " + match)
         return 0
     
-    def process_puzzle_state(self):
-        return 
-    
-    def should_continue(self):
+    def should_continue(self) -> bool:
         return not self.puzzle.is_solved()
     
-    def write_results(self, iteration):
+    def return_results(self, iteration):
         results = {
             'total_steps': self.puzzle.steps,
             'is_solved': self.puzzle.is_solved(),
@@ -85,5 +88,5 @@ class PuzzleSession:
             iteration += 1
         #print(self.conversation_history)
 
-        return self.write_results(iteration)
+        return self.return_results(iteration)
     

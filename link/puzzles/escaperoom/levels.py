@@ -1,5 +1,5 @@
-from escaperoom import GridPuzzle, Door, Button, Rock
-
+from link.puzzles.escaperoom.entities import GridPuzzle, Door, Button, Rock
+    
 def level_one(): 
     # Solution:
     # print(puzzle.move_player('up'))
@@ -24,10 +24,10 @@ def level_one():
     available_actions = {
         "puzzle.get_status()": "Will not impact number of steps. Shows you position, inventory items, and number of steps so far", 
         "puzzle.is_solved()": "Will not impact number of steps. Checks if it is solved.",
-        "puzzle.move_player('up')": "Will move player one spot forward in the y axis.", 
-        "puzzle.move_player('down')": "Will move player one spot backward in the y axis.", 
-        "puzzle.move_player('left')": "Will move player one spot forward in the x axis.", 
-        "puzzle.move_player('right')": "Will move player one spot backward in the x axis.", 
+        "puzzle.move_player('up')": "Will increase y coordinate by 1", 
+        "puzzle.move_player('down')": "Will decrease y coordinate by 1", 
+        "puzzle.move_player('left')": "Will decrease x coordinate by 1", 
+        "puzzle.move_player('right')": "Will increase x coordinate by 1", 
         "puzzle.equip('rock')": "Will allow player to equip rock.", 
         "puzzle.drop('rock')": "Will allow player to unequip rock."
     }

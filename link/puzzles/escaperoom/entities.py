@@ -68,7 +68,7 @@ class Button(GameObject):
             for obj in self.linked_objects:
                 if hasattr(obj, 'activate'):
                     obj.activate()
-            return "You hear a click. The button is pressed."
+            return "The button sinks under the weight. You hear a click. The button is pressed."
         return None
 
     def unpress(self):
@@ -77,7 +77,7 @@ class Button(GameObject):
             for obj in self.linked_objects:
                 if hasattr(obj, 'deactivate'):
                     obj.deactivate()
-            return "You hear another click. The button is unpressed."
+            return "The button rises as the weight is removed. You hear another click. The button is unpressed."
         return None    
 
 # Objects
@@ -136,6 +136,9 @@ class GridPuzzle:
         return [obj for obj in self.objects if obj.position == position]
 
     def get_object_by_name(self, name: str): 
+        if self.player.inventory and self.player.inventory.__class__.__name__.lower() == name.lower():
+            return self.player.inventory
+        
         # only looking at the player position: !!!
         return next((obj for obj in self.get_objects_at(self.player.position) 
                     if obj.__class__.__name__.lower() == name.lower()), None)
@@ -143,7 +146,6 @@ class GridPuzzle:
     # ACTIONS # 
     def equip(self, obj_name: str): 
         obj = self.get_object_by_name(obj_name)
-        print(obj)
         if obj: 
             for o in self.get_objects_at(self.player.position): 
                 if isinstance(o, Button):
@@ -155,7 +157,7 @@ class GridPuzzle:
             self.player.inventory = obj
             self.objects.remove(obj)
 
-            return f"You now have the item {obj} in your inventory."
+            return f"You now have the item {obj_name} in your inventory."
         else: 
             return "There is no object that you can equip. "
 
@@ -174,6 +176,7 @@ class GridPuzzle:
         self.player.inventory = None
         obj.set_position(self.player.position)
         self.objects.append(obj)
+        return f"You have dropped the {obj_name}. It is no longer in your inventory. " 
 
     def move_player(self, direction: str):
         old_position = self.player.position
