@@ -26,7 +26,8 @@ class Runner:
     def __init__(self: str = "", model: str = "openai:gpt-4o", puzzle_level: int=1):
         self.client = ai.Client() #OpenAI(api_key=api_key)
         self.model = model
-        self.puzzle, self.available_actions = levels.get_puzzle(puzzle_level)
+        self.level = levels.get_level(puzzle_level)
+        self.puzzle, self.available_actions = self.level.get_level()
         self.system_prompt = self.get_prompt(self.puzzle, self.available_actions)
         self.conversation_history = [{"role": "system", "content": self.system_prompt}]
 
@@ -68,9 +69,9 @@ class Runner:
     
     def return_results(self, iteration):
         results = {
-            'total_steps': self.puzzle.steps,
+            'total_steps': self.puzzle.steps, # steps = how much player has moved
             'is_solved': self.puzzle.is_solved(),
-            'num_iterations': iteration,
+            'num_iterations': iteration, # iterations = movement + other actions
             'conversation': self.conversation_history
         }
         return results        
@@ -81,7 +82,6 @@ class Runner:
         while iteration < max_iterations:
             # use latest response 
             description = self.interact_with_puzzle(response)
-            #next_question = self.process_puzzle_state()
             response = self.send_message(description)
             if not self.should_continue():
                 break
