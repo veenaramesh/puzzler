@@ -1,3 +1,4 @@
+from link.puzzles.escaperoom.actions import ActionHandler
 from link.puzzles.escaperoom.entities import GridPuzzle
 import link.puzzles.escaperoom.levels as levels 
 
@@ -6,20 +7,27 @@ import re
 import aisuite as ai
 from link.puzzles.escaperoom.utils import print_puzzle_state, print_available_actions, print_object_state, print_player_state
 
-SYSTEM_PROMPT = """Goal: Your goal is to reach and open the door ('D').
+SYSTEM_PROMPT = """Goal: Your goal is to reach and open the door.
 
 Rules:
-    1. You can move on the grid using up/down/left/right actions. 
-    2. You can only pick up or drop objects when you are at their position (same x,y coordinates). 
-    3. Rocks ('R') can be equipped.
-    4. A pressed button opens the door ('d' becomes 'D'). 
-    5. Respond with one available action at a time. 
-    6. Do not send any other information. Only send the available action. 
+    1. You can move on the grid using the 'move' command followed by a direction (up/down/left/right)
+    2. You can pick up objects when you are at their position using 'pick_up' followed by the object name
+    3. You can drop objects from your inventory using 'drop' followed by the object name
+    4. A pressed button opens the door
+    5. Respond with one available action at a time
+    6. Only send the available action
 
-Hints: 
-    1. Plan moves in advance. 
-    2. Think about objects in the room. 
-    3. Think about the order of actions.
+Example actions:
+    - move up
+    - move down
+    - pick_up rock
+    - drop rock
+
+Currently available actions:
+{available_actions}
+
+Current State:
+{state}
 """
 
 class Runner:
@@ -28,65 +36,60 @@ class Runner:
         self.model = model
         self.level = levels.get_level(puzzle_level)
         self.puzzle, self.available_actions = self.level.get_level()
-        self.system_prompt = self.get_prompt(self.puzzle, self.available_actions)
-        self.conversation_history = [{"role": "system", "content": self.system_prompt}]
+        self.action_handler = ActionHandler(self.puzzle)
+        self.conversation_history = []
+        self._initialize_conversation() 
+    
+    def _initialize_conversation(self): 
+        # could also reset conversation if needed
+        initial_state = self._get_current_state()
+        system_message = SYSTEM_PROMPT.format(
+            available_actions=self.action_handler.get_available_actions(), 
+            state=initial_state
+        )
+        self.conversation_history = [{"role": "system", "content": system_message}]
 
-    def get_prompt(self, puzzle: GridPuzzle, available_actions: Dict) -> str:
-        return SYSTEM_PROMPT + '\n' + print_puzzle_state(puzzle) + '\n' + print_object_state(puzzle) + '\n' + print_player_state(puzzle) + '\n' + print_available_actions(available_actions)
-
-    def add_to_history(self, role: str, content: str):
-        self.conversation_history.append({"role": role, "content": content})
+    def _get_current_state(self): 
+        return "\n".join([
+            print_puzzle_state(self.puzzle), 
+            print_object_state(self.puzzle), 
+            print_player_state(self.puzzle)
+        ])
     
     def get_llm_response(self) -> str:
-        messages = self.conversation_history
         response = self.client.chat.completions.create(
             model=self.model,
-            messages=messages, 
+            messages=self.conversation_history, 
             temperature=0.5
         )
         content = response.choices[0].message.content
-        self.add_to_history("assistant", content)
-        print(f"LLM: {content}")
+        self.conversation_history.append({"role": "assistant", "content": content})
+        print(f"LLM Action: {content}")
         return content
 
     def send_message(self, message: str) -> str:
-        print(f"PUZZLE: {message}")
-        self.add_to_history("user", message)
+        print(f"Game State update: {message}")
+        self.conversation_history.append({"role": "assistant", "content": message})
         return self.get_llm_response()
-        
-    def interact_with_puzzle(self, response):
-        matches = re.findall(r'puzzle\.[a-zA-Z_]+\([^)]*\)', response)
-        for match in matches:
-            try: 
-                response = eval('self.' + match)
-                return response
-            except Exception as e: 
-                raise ValueError("Invalid action encountered: " + match)
-        return 0
+             
     
-    def should_continue(self) -> bool:
-        return not self.puzzle.is_solved()
-    
-    def return_results(self, iteration):
-        results = {
-            'total_steps': self.puzzle.steps, # steps = how much player has moved
-            'is_solved': self.puzzle.is_solved(),
-            'num_iterations': iteration, # iterations = movement + other actions
-            'conversation': self.conversation_history
-        }
-        return results        
-    
-    def run_eval(self, max_iterations: int = 30) -> str:        
+    def run_eval(self, max_iterations: int = 30) -> dict:        
         iteration = 0
-        response = self.get_llm_response()
+        action = self.get_llm_response()
         while iteration < max_iterations:
-            # use latest response 
-            description = self.interact_with_puzzle(response)
-            response = self.send_message(description)
-            if not self.should_continue():
-                break
+            result = self.action_handler.execute(action)
+
+            if self.puzzle.is_solved(): 
+                break 
+
+            action = self.send_message(result)
             iteration += 1
         #print(self.conversation_history)
 
-        return self.return_results(iteration)
+        return {
+            'total_steps': self.puzzle.steps, 
+            'is_solved': self.puzzle.is_solved(), 
+            'num_iterations': iteration, 
+            'conversation': self.conversation_history
+        }
     

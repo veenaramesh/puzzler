@@ -27,7 +27,7 @@ def play(models: List[str] = ["openai:gpt-4o", "anthropic:claude-3-5-sonnet-2024
         print(f"Testing {model}... ")
         for level in puzzles: 
             sess = Runner(model=model, puzzle_level=level)
-            results = sess.run_eval(max_iterations=50)
+            results = sess.run_eval(max_iterations=max_iterations)
             results.update({'model': model, 'puzzle_level': level})
             all_results.append(results)
     
