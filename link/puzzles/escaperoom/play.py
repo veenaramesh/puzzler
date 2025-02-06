@@ -3,7 +3,7 @@ from link.puzzles.escaperoom.runner import Runner
 import csv
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Any
 import fire 
 
 def write_results_to_csv(results_list: List[Dict], output_dir: Path = Path("results")):
@@ -20,7 +20,18 @@ def write_results_to_csv(results_list: List[Dict], output_dir: Path = Path("resu
     
     return filepath
 
-def play(models: List[str] = ["openai:gpt-4o", "anthropic:claude-3-5-sonnet-20240620"], puzzles: List[int] = [1], max_iterations:int=30): 
+def pretty_print_messages(messages: List[Dict[str, Any]]) -> None: 
+    for message in messages: 
+        print(f"Role: {message['role']}")
+        content = message['content']
+        print("-"*20) 
+
+        if content.startswith('"') and content.endswith('"'):
+            content = content[1:-1]
+        print(f"Content: {content}")
+
+
+def play(models: List[str] = ["openai:gpt-4o", "anthropic:claude-3-5-sonnet-20240620"], puzzles: List[int] = [1], max_iterations:int=30, print_results=False): 
     all_results = []
 
     for model in models: 
@@ -29,6 +40,8 @@ def play(models: List[str] = ["openai:gpt-4o", "anthropic:claude-3-5-sonnet-2024
             sess = Runner(model=model, puzzle_level=level)
             results = sess.run_eval(max_iterations=max_iterations)
             results.update({'model': model, 'puzzle_level': level})
+            if print_results: 
+                pretty_print_messages(results['conversation'])
             all_results.append(results)
     
     output_file = write_results_to_csv(all_results)

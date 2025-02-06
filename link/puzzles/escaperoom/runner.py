@@ -17,6 +17,10 @@ Rules:
     5. Respond with one available action at a time
     6. Only send the available action
 
+Tips: 
+    1. Explore the environment
+    2. Use what you have found to think about your future actions
+
 Example actions:
     - move up
     - move down
@@ -26,7 +30,17 @@ Example actions:
 Currently available actions:
 {available_actions}
 
-Current State:
+Current state:
+{state}
+"""
+
+STATE_PROMPT = """Action result: 
+{content}
+
+Currently available actions:
+{available_actions}
+
+Current state:
 {state}
 """
 
@@ -64,12 +78,17 @@ class Runner:
         )
         content = response.choices[0].message.content
         self.conversation_history.append({"role": "assistant", "content": content})
-        print(f"LLM Action: {content}")
+        #print(f"LLM Action: {content}")
         return content
 
     def send_message(self, message: str) -> str:
-        print(f"Game State update: {message}")
-        self.conversation_history.append({"role": "assistant", "content": message})
+        #print(f"Game State update: {message}")
+        new_message = STATE_PROMPT.format(
+            content=message, 
+            available_actions=self.action_handler.get_available_actions(), 
+            state=self._get_current_state()
+        )
+        self.conversation_history.append({"role": "user", "content": new_message})
         return self.get_llm_response()
              
     
